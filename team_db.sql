@@ -1,0 +1,26 @@
+DROP DATABASE IF EXISTS team_db;
+CREATE DATABASE team_db;
+USE team_db;
+
+CREATE TABLE department (
+  id INTEGER AUTO_INCREMENT NOT NULL,
+  departmentName VARCHAR(30),
+  PRIMARY KEY (id)
+);
+
+CREATE TABLE roles (
+  id INTEGER AUTO_INCREMENT NOT NULL,
+  title VARCHAR(30),
+  salary DECIMAL(10,2) NOT NULL,
+  departmentId INTEGER(30) NOT NULL
+  PRIMARY KEY (id)
+);
+
+CREATE TABLE employee (
+  id INTEGER AUTO_INCREMENT NOT NULL,
+  firstName VARCHAR(30),
+  lastName VARCHAR(30),
+  roleId INTEGER(30) NOT NULL,
+  managerId INTEGER(30),
+  PRIMARY KEY (id)
+);
