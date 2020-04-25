@@ -12,7 +12,7 @@ CREATE TABLE roles (
   id INTEGER AUTO_INCREMENT NOT NULL,
   title VARCHAR(30),
   salary DECIMAL(10,2) NOT NULL,
-  departmentId INTEGER(30) NOT NULL
+  departmentId INTEGER(30) NOT NULL,
   PRIMARY KEY (id)
 );
 
