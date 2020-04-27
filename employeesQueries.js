@@ -1,7 +1,11 @@
 // Get emplyee
 const findAllEmployees = 'SELECT * FROM employee';
-const findEmployeesByDpt = 'SELECT * FROM employee WHERE department = ?;';
+const findEmployeesByDpt = `SELECT employee.id, employee.firstName, employee.lastName
+    FROM employee 
+    INNER JOIN department ON employee.departmentId = department.id
+    WHERE department.departmentName = ?;`;
 const findEmployeesByManager = 'SELECT * FROM employee WHERE manager = ?;';
+
 
 // adding employee
 const addEmployee = 'INSERT INTO employee SET ?';
