@@ -6,7 +6,7 @@ const connection = mysql.createConnection({
   host: 'localhost',
   user: 'root',
   password: 'password',
-  database: 'team_db'
+  database: 'team_db',
 });
 
 connection.connect((err) => {
@@ -26,7 +26,6 @@ const promptUser = () => {
       'Add Employee',
       'Remove Employee',
       'Update Employee Role',
-      'Update Employee NavigationPreloadManager',
       'View All Roles',
     ],
   }).then(answer => {
@@ -48,6 +47,9 @@ const promptUser = () => {
         break;
       case 'Update Employee Role':
         updateEmployeeRoles();
+        break;
+      case 'View All Roles':
+        viewAllRoles();
         break;
     }
   });
@@ -74,9 +76,7 @@ const viewAllEmplByDept = () => {
   const queryDept = 'SELECT * FROM department';
   connection.query(queryDept, (err, department) => {
     if (err) throw err;
-    // console.log(department);
     let arrDept = department.map(dept => dept.departmentName);
-    // console.log(arrDept);
 
     inquirer.prompt({
       name: 'department',
@@ -99,67 +99,70 @@ const viewAllEmplByDept = () => {
   });
 };
 
-// // view all employees by manager
-// const viewAllEmplByManager = () => {
-//   const queryEmployee = 'SELECT * FROM employee';
-//   connection.query(queryEmployee, (err, employees) => {
-//     if (err) throw err;
-//     const arrEmployee = employees.map((employee) => {
-//       // to add an if statement to bring only the employee of the department based on the roles choice
-//       return {
-//         name: `${employee.firstName} ${employee.lastName}`,
-//         value: employee.id,
-//       };
-//     });
-//     console.log(arrEmployee)
-//     inquirer
-//       .prompt({
-//         name: 'manager',
-//         type: 'list',
-//         message: 'Select an employee:',
-//         choices: arrEmployee,
-//       }).then((answer) => {
-//         const query = `SELECT * FROM employee 
-//         LEFT JOIN employee.id = managerId
-//         WHERE ?;`;
-//         connection.query(query, answer, (err, employee) => {
-//           if (err) throw err;
-//           if (employee.length > 0) {
-//             console.table('Employee by department:', employee);
-//           } else {
-//             console.log('No employees found in this department');
-//           }
-//           promptUser();
-//         });
-//       });
-//   });
-// };
+// view all employees by manager
+const viewAllEmplByManager = () => {
+  const queryEmployee = 'SELECT * FROM employee';
+  connection.query(queryEmployee, (err, employees) => {
+    if (err) throw err;
+    const arrEmployee = employees.map((employee) => {
+      return {
+        name: `${employee.firstName} ${employee.lastName}`,
+        value: employee.id,
+      };
+    });
+    console.log(arrEmployee);
+    inquirer
+      .prompt({
+        name: 'manager',
+        type: 'list',
+        message: 'Select a manager:',
+        choices: arrEmployee,
+      }).then((answer) => {
+        const query = `SELECT * FROM employee 
+        LEFT JOIN roles ON roles.id = employee.roleId 
+        LEFT JOIN department ON department.id = roles.departmentId WHERE employee.managerId = ?`;
+        connection.query(query, answer.manager, (err, employee) => {
+          if (err) throw err;
+          if (employee.length > 0) {
+            console.table('Employees by manager:', employee);
+          } else {
+            console.log('This employee does not manage any employees');
+          }
+          promptUser();
+        });
+      });
+  });
+};
 
 // add an epmloyee
 const addEmployee = () => {
   const queryRoles = 'SELECT * FROM roles';
   connection.query(queryRoles, (err, roles) => {
     if (err) throw err;
-    console.log(roles);
     const arrRoles = roles.map((role) => {
       return {
         name: role.title,
         value: role.id,
       };
     });
-    console.log(arrRoles);
 
     const queryEmployee = 'SELECT * FROM employee;';
     connection.query(queryEmployee, (err, employees) => {
       if (err) throw err;
-      console.log('all employees:', employees);
       const arrEmployee = employees.map((employee) => {
-        // to add an if statement to bring only the employee of the department based on the roles choice
         return {
           name: `${employee.firstName} ${employee.lastName}`,
           value: employee.id,
         };
       });
+
+      arrEmployee.unshift(
+        {
+          name: 'none',
+          value: null,
+        },
+      );
+
       inquirer
         .prompt([
           {
@@ -189,8 +192,12 @@ const addEmployee = () => {
           const queryAddEmployee = 'INSERT INTO employee SET ?';
           connection.query(queryAddEmployee, response, (err, newEmployee) => {
             if (err) throw err;
-            console.table('New emoployee:', newEmployee);
-            promptUser();
+            // console.table('New emoployee:', newEmployee);
+            connection.query('SELECT * FROM employee WHERE id = ?', newEmployee.insertId, (err, newEmployeeId) => {
+              console.table('New employee:', newEmployeeId);
+              promptUser();
+            });
+            // promptUser();
           });
         });
     });
@@ -239,7 +246,7 @@ const updateEmployeeRoles = () => {
     // to add an if statement to bring only the employee of the department based on the roles choice
       return {
         name: `${employee.firstName} ${employee.lastName}`,
-        value: employee.roleId,
+        value: employee.id,
       };
     });
     const queryRoles = 'SELECT * FROM roles';
@@ -268,7 +275,7 @@ const updateEmployeeRoles = () => {
           },
         ]).then((response) => {
           console.log(response.selectEmployee);
-          const updateEmployeeRole = 'UPDATE employee SET roleId = ? WHERE ?';
+          const updateEmployeeRole = 'UPDATE employee SET roleId = ? WHERE employee.id = ?';
           connection.query(updateEmployeeRole, [response.selectRole, response.selectEmployee], (err, newEmployee) => {
             if (err) throw err;
             // console.log(newEmployee);
@@ -277,5 +284,15 @@ const updateEmployeeRoles = () => {
           });
         });
     });
+  });
+};
+
+// view all roles
+const viewAllRoles = () => {
+  const queryRoles = 'SELECT id AS roleID, title, salary FROM roles';
+  connection.query(queryRoles, (err, roles) => {
+    if (err) throw err;
+    console.table('All roles:', roles);
+    promptUser();
   });
 };
