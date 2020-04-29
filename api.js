@@ -1,6 +1,7 @@
-const mysql = require("mysql");
+const mysql = require('mysql');
 const cTable = require('console.table');
-const inquirer = require("inquirer");
+const inquirer = require('inquirer');
+const employeeQueries = require('./employeeQueries');
 
 const connection = mysql.createConnection({
   host: 'localhost',
@@ -192,12 +193,10 @@ const addEmployee = () => {
           const queryAddEmployee = 'INSERT INTO employee SET ?';
           connection.query(queryAddEmployee, response, (err, newEmployee) => {
             if (err) throw err;
-            // console.table('New emoployee:', newEmployee);
             connection.query('SELECT * FROM employee WHERE id = ?', newEmployee.insertId, (err, newEmployeeId) => {
               console.table('New employee:', newEmployeeId);
               promptUser();
             });
-            // promptUser();
           });
         });
     });
