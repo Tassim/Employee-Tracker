@@ -15,6 +15,15 @@ LEFT JOIN roles ON roles.id = employee.roleId
 LEFT JOIN department ON department.id = roles.departmentId WHERE employee.managerId = ?`;
 const viewAllemplbyDept = `SELECT employee.id AS employeeId, firstName, lastName, title, salary, departmentName FROM employee LEFT JOIN roles ON employee.roleId = roles.id LEFT JOIN department ON roles.departmentId = department.id
 WHERE department.departmentName = ?;`;
+
+const viewDeptBudget = `SELECT department.id, departmentName, SUM(roles.salary) AS totalSalary
+FROM employee 
+LEFT JOIN roles
+ON employee.roleId = roles.id
+LEFT JOIN department 
+ON roles.departmentId = department.id
+GROUP BY department.id;`;
+
 const viewEmplById = 'SELECT * FROM employee WHERE id = ?';
 const viewCustomRolesTable = 'SELECT id AS roleID, title, salary FROM roles';
 
@@ -39,4 +48,5 @@ module.exports = {
   addEmployee,
   updateEmployeeRole,
   deleteEmployee,
+  viewDeptBudget,
 };
