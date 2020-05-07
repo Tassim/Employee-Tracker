@@ -30,6 +30,9 @@ const viewCustomRolesTable = 'SELECT id AS roleID, title, salary FROM roles';
 // add employee
 const addEmployee = 'INSERT INTO employee SET ?';
 
+// add role
+const addRole = 'INSERT INTO roles SET ?';
+
 // update employee
 const updateEmployeeRole = 'UPDATE employee SET roleId = ? WHERE employee.id = ?';
 
@@ -46,6 +49,7 @@ module.exports = {
   viewEmplById,
   viewCustomRolesTable,
   addEmployee,
+  addRole,
   updateEmployeeRole,
   deleteEmployee,
   viewDeptBudget,

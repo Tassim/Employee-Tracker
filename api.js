@@ -1,7 +1,6 @@
-const mysql = require('mysql');
+const mysql = require('mysql2');
 const cTable = require('console.table');
 const inquirer = require('inquirer');
-const util = require('util');
 const employeeQueries = require('./models/employees/employeeQueries');
 
 const connection = mysql.createConnection({
@@ -9,14 +8,12 @@ const connection = mysql.createConnection({
   user: 'root',
   password: 'password',
   database: 'team_db',
-});
+}).promise();
 
 connection.connect((err) => {
   if (err) throw err;
   console.log('Connected!');
 });
-
-connection.query = util.promisify(connection.query);
 
 const promptUser = async () => {
   const answer = await inquirer.prompt({
@@ -28,6 +25,7 @@ const promptUser = async () => {
       'View All Employees By Department',
       'View All Employees By Manager',
       'Add Employee',
+      'Add Role',
       'Remove Employee',
       'Update Employee Role',
       'View All Roles',
@@ -47,6 +45,9 @@ const promptUser = async () => {
     case 'Add Employee':
       addEmployee();
       break;
+    case 'Add Role':
+      addRole();
+      break;
     case 'Remove Employee':
       removeEmployee();
       break;
@@ -59,6 +60,8 @@ const promptUser = async () => {
     case 'View Department Utilized Budget':
       viewDeptBudget();
       break;
+    default:
+      connection.end();
   }
 };
 
@@ -66,7 +69,7 @@ promptUser();
 
 // view all employees
 const viewAllEmployees = async () => {
-  let employee = await connection.query(employeeQueries.viewAllEmployees);
+  const [employee] = await connection.query(employeeQueries.viewAllEmployees);
   try {
     console.table('All employee:', employee);
   } catch (error) {
@@ -77,7 +80,7 @@ const viewAllEmployees = async () => {
 
 // view all employees by department
 const viewAllEmplByDept = async () => {
-  const department = await connection.query(employeeQueries.viewAllDept);
+  const [department] = await connection.query(employeeQueries.viewAllDept);
   const arrDept = department.map(dept => dept.departmentName);
   const answer = await inquirer.prompt({
     name: 'department',
@@ -85,7 +88,7 @@ const viewAllEmplByDept = async () => {
     message: 'Select a department:',
     choices: arrDept,
   });
-  const employee = await connection.query(employeeQueries.viewAllemplbyDept, answer.department);
+  const [employee] = await connection.query(employeeQueries.viewAllemplbyDept, answer.department);
 
   if (employee.length > 0) {
     console.table('Employee by department:', employee);
@@ -97,7 +100,7 @@ const viewAllEmplByDept = async () => {
 
 // view all employees by manager
 const viewAllEmplByManager = async () => {
-  const employees = await connection.query(employeeQueries.viewAllEmpl);
+  const [employees] = await connection.query(employeeQueries.viewAllEmpl);
   const arrEmployee = employees.map((employee) => {
     return {
       name: `${employee.firstName} ${employee.lastName}`,
@@ -112,7 +115,7 @@ const viewAllEmplByManager = async () => {
       message: 'Select a manager:',
       choices: arrEmployee,
     });
-  const employee = await connection.query(employeeQueries.viewAllEmplByManager, answer.manager);
+  const [employee] = await connection.query(employeeQueries.viewAllEmplByManager, answer.manager);
   if (employee.length > 0) {
     console.table('Employees by manager:', employee);
   } else {
@@ -123,14 +126,14 @@ const viewAllEmplByManager = async () => {
 
 // add an epmloyee
 const addEmployee = async () => {
-  let roles = await connection.query(employeeQueries.viewAllRoles);
+  const [roles] = await connection.query(employeeQueries.viewAllRoles);
   const arrRoles = roles.map((role) => {
     return {
       name: role.title,
       value: role.id,
     };
   });
-  const employees = await connection.query(employeeQueries.viewAllEmpl);
+  const [employees] = await connection.query(employeeQueries.viewAllEmpl);
   const arrEmployee = employees.map((employee) => {
     return {
       name: `${employee.firstName} ${employee.lastName}`,
@@ -169,16 +172,49 @@ const addEmployee = async () => {
       },
     ]);
   console.log(response);
-  const newEmployee = await connection.query(employeeQueries.addEmployee, response);
-  const newEmployeeId = await connection.query(employeeQueries.viewEmplById, newEmployee.insertId);
+  const [newEmployee] = await connection.query(employeeQueries.addEmployee, response);
+  const [newEmployeeId] = await connection.query(employeeQueries.viewEmplById, newEmployee.insertId);
   console.table('New employee:', newEmployeeId);
   promptUser();
 };
 
+// add a new role
+const addRole = async () => {
+  const [depts] = await connection.query(employeeQueries.viewAllDept);
+  const arrDept = depts.map((dept) => {
+    return {
+      name: dept.departmentName,
+      value: dept.id,
+    };
+  });
+  let response = await inquirer
+    .prompt([
+      {
+        type: 'input',
+        name: 'title',
+        message: 'Please add a role title?',
+      },
+      {
+        type: 'input',
+        name: 'salary',
+        message: "What's the base salary for this role?",
+      },
+      {
+        type: 'list',
+        name: 'departmentId',
+        message: 'Select a department',
+        choices: arrDept,
+      },
+    ]);
+  console.log(response);
+  const [newRole] = await connection.query(employeeQueries.addRole, response);
+  console.table('New role:', newRole);
+  promptUser();
+};
+
 const removeEmployee = async () => {
-  const employees = await connection.query(employeeQueries.viewAllEmpl);
+  const [employees] = await connection.query(employeeQueries.viewAllEmpl);
   const arrEmployee = employees.map((employee) => {
-  // to add an if statement to bring only the employee of the department based on the roles choice
     return {
       name: `${employee.firstName} ${employee.lastName}`,
       value: employee.id,
@@ -194,7 +230,7 @@ const removeEmployee = async () => {
       },
     ]);
   console.log('Hello', response);
-  const delEmployee = await connection.query(employeeQueries.deleteEmployee, response.removeEmployee);
+  const [delEmployee] = await connection.query(employeeQueries.deleteEmployee, response.removeEmployee);
   try {
     console.log('deleted:', delEmployee);
   } catch (error) {
@@ -204,16 +240,15 @@ const removeEmployee = async () => {
 };
 
 const updateEmployeeRoles = async () => {
-  let employees = await connection.query(employeeQueries.viewAllEmpl);
+  const [employees] = await connection.query(employeeQueries.viewAllEmpl);
   console.log('all employees:', employees);
   const arrEmployee = employees.map((employee) => {
-  // to add an if statement to bring only the employee of the department based on the roles choice
     return {
       name: `${employee.firstName} ${employee.lastName}`,
       value: employee.id,
     };
   });
-  let roles = await connection.query(employeeQueries.viewAllRoles);
+  const [roles] = await connection.query(employeeQueries.viewAllRoles);
   const arrRoles = roles.map((role) => {
     return {
       name: role.title,
@@ -236,7 +271,7 @@ const updateEmployeeRoles = async () => {
       },
     ]);
   console.log(response.selectEmployee);
-  const newEmployee = await connection.query(employeeQueries.updateEmployeeRole, [response.selectRole, response.selectEmployee]);
+  const [newEmployee] = await connection.query(employeeQueries.updateEmployeeRole, [response.selectRole, response.selectEmployee]);
   try {
     console.table('New emoployee:', newEmployee);
   } catch (error) {
@@ -247,7 +282,7 @@ const updateEmployeeRoles = async () => {
 
 // view all roles
 const viewAllRoles = async () => {
-  let roles = await connection.query(employeeQueries.viewCustomRolesTable);
+  const [roles] = await connection.query(employeeQueries.viewCustomRolesTable);
   try {
     console.table('All roles:', roles);
   } catch (error) {
@@ -258,7 +293,7 @@ const viewAllRoles = async () => {
 
 // view all salary
 const viewDeptBudget = async () => {
-  let salary = await connection.query(employeeQueries.viewDeptBudget);
+  const [salary] = await connection.query(employeeQueries.viewDeptBudget);
   try {
     console.table('Total salaries by department:', salary);
   } catch (error) {

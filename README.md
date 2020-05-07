@@ -27,3 +27,4 @@ So that I can organize and plan my business
 ```
 
 [Link to GitHub repo: Employee Taker](https://github.com/Tassim/homework10)
+![screenshot](./assets/screenshot.png)
